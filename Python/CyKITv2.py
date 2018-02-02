@@ -139,7 +139,7 @@ def main(CyINIT):
                 ioTHREAD.onClose()
                 print "*** Reseting . . ."
                 CyINIT = 1
-                main(1)
+                #main(1)
     
 try:
     
