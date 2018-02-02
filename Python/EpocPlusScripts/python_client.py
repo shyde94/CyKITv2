@@ -25,7 +25,7 @@ class receiverSocket():
         self.sampleReadings = []
         self.eventList = []
         self.eventLabel = '0000'
-        self.filename = './EEG_Trials/'
+        self.filename = './EEG_Pickle_Files/'
         self.mode = '2'
         
 
@@ -85,23 +85,16 @@ class receiverSocket():
                         #print("Inside")
                         self.sampleReadings.append(data) #store reading in list
                         
-                        #recording of events, event labels to be changed 
-                        if self.eventLabel == '999': #temp labels, get actual labels from zhiyan
+                        #For recording of events. 999 and 998 represent start and end of experiment respectively. The rest of the event labels can be customized.
+                        if self.eventLabel == '999': 
                             print("Trial Start")
-                            self.eventList.append(999)
-                        elif self.eventLabel == '997':
-                            print("Mini trial start")
-                            self.eventList.append(997)
-                        elif self.eventLabel == '996': 
-                            print("Mini trial end")
-                            self.eventList.append(996)
-                        elif self.eventLabel[:2] == '10': 
-                            print('new frequency: ', self.eventLabel)
-                            self.eventList.append(int(self.eventLabel))
+                            self.eventList.append(999) 
                         elif self.eventLabel == '998':
                             self.eventList.append(998)
                             print("Trial Ended")
                             break;
+                        elif self.eventLabel != '' and self.eventLabel != '0000':
+                            self.eventList.append(int(self.eventLabel))
                         elif self.eventLabel == '0000':
                             self.eventList.append(0)
                         else:
@@ -242,4 +235,4 @@ class receiverSocket():
 if __name__ == '__main__':
     client = receiverSocket('127.0.0.1', 15525, [0,8,9])
     client.start()
-    #client.testInterface()
+    client.testInterface()
