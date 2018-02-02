@@ -2,10 +2,7 @@
 Event codes:
 999 - Experiment starts
 998 - Experiment ends
-997 - Mini trial start
-996 - Mini trial ends
-
-100x - Frequency. x represents position in frequency list. 
+ 
 
 eeg data recording matrix: 
 index:
@@ -14,18 +11,12 @@ index:
 ...
 [-1] - event codes
 
-ref signal list:
-[0] - frequency list
-[1] - ALL ref signals (represented as strings, eg stimulus 1 = '00001111000....')
-[2] - Event log
 
+Modified version of Data_Analysis for pull request with CyKitV2. 
 
-2 ways to record? 
-1) Views each mini trial as a training sample, apply cca algo, get accuracy. Records down each attribute of the CCA_engine to find combination that gives best results.
-2) Identifies each mini trial and records down cca coefficients, difference in coeff values? confidence score?
+Takes in EEG data only, no reference signals (eg. visual stimulus). Samples and event labels will be returned in edf events format (similar to how the MNE Library organises its event labels and samples for edf files)
 '''
 from six.moves import cPickle
-from CCA import cca_V2
 import numpy as np
 import csv
 from scipy import signal
@@ -35,21 +26,21 @@ from scipy.fftpack import fft
 #for offline analysis
 class DataAnalyser():
     #Previous constructor, for 2 file names
-    '''def __init__(self, eeg_data_filename, ref_sig_filename, all_event_codes,interval,sample_rate_x=60, sample_rate_y=128):
-        self.eeg_filename = eeg_data_filename
-        self.ref_filename = ref_sig_filename
+    def __init__(self, eeg_data_filename, all_event_codes,sample_rate_x=60, sample_rate_y=128):
+        self.file = eeg_data_filename
+        
         self.event_codes = all_event_codes
-        self.interval = interval #duration of minitrial
+        
         self.sample_rate_x = sample_rate_x
-        self.sample_rate_y = sample_rate_y
+        self.sample_rate_y = sample_rate_y 
         self.num_training_samples = 0
         self.num_correct = 0
         self.num_wrong = 0
 
         self.fileHandler()
         self.eegDataHandler()
-        self.refSigHandler()'''
-    
+        #self.refSigHandler()
+    '''
     #New constructor for 1 filename (ref_sig and eeg are combined in 1 file)
     def __init__(self, combined_filename, all_event_codes,sample_rate_x=60, sample_rate_y=128,cca_mode=0,cca_interval=0.25,cca_squareOrSine=0,cca_delay_min=13, cca_delay_max=23):
         self.file = combined_filename
@@ -70,31 +61,29 @@ class DataAnalyser():
         self.fileHandler()
         self.eegDataHandler()
         self.refSigHandler()
-
+    '''
     def fileHandler(self):
         f = open(self.file,'rb')
-        self.session_details, self.data, self.ref_sig_list = cPickle.load(f)
+        self.session_details, self.data = cPickle.load(f)
         f.close()
     
     def eegDataHandler(self):
         try:
-            #f = open(self.eeg_filename,'rb')
-            #self.data = cPickle.load(f)
-            
-            plt.figure()
-            # Request for specific channel in this space below ####### For now hard code, temp. Make it dynamic
-            
-            eeg_readings = self.data[1:-1]
+            eeg_readings = self.data[0:-2]
             length = np.arange(eeg_readings.shape[1])
-            #print(eeg_readings.shape)
+            
+            fig1 = plt.figure(figsize=(20,6))
             for i in range(eeg_readings.shape[0]):
+                ax1 = fig1.add_subplot(2,1,i+1)
                 plt.plot(length, eeg_readings[i,:])
+                ax1.set_ylabel("channel {}".format(i+1))
     
             plt.show()
+            plt.close()
             
             #Get event list
             event_channel = self.data[-1,:]
-            print('event_channel', event_channel)
+            
             filtered_event_list = []
             sample_index = []
             
@@ -106,19 +95,19 @@ class DataAnalyser():
             self.filtered_event_list = np.asarray(filtered_event_list).astype(int)
             self.sample_index = np.asarray(sample_index)
             
-            print(self.filtered_event_list)
-            print(self.sample_index)
+            print("List of events: {}".format(self.filtered_event_list))
+            print("List of sample indexes: {}".format(self.sample_index))
             
         except Exception, e:
             print("eegDataHandler, Error opening file, ", e )
             return
         
             
-        
+    '''  
     def refSigHandler(self):
-        '''
-        Convert ref signal format from ['11100111..', '1010101...' ,...] to a matrix of shape (num_ref_sig, num_samples)
-        '''
+        
+        #Convert ref signal format from ['11100111..', '1010101...' ,...] to a matrix of shape (num_ref_sig, num_samples)
+        
         try:
             #f = open(self.ref_filename,'rb')
             #ref_sig = cPickle.load(f)
@@ -148,7 +137,9 @@ class DataAnalyser():
         except Exception, e:
             print("refSigHandler, Error opening file, ", e)
             return
-        
+    ''' 
+
+    '''
     def Analyse(self):
         
         self.results_comparison_dict = {}
@@ -199,7 +190,7 @@ class DataAnalyser():
         
         self.recordAttributes()
             
-      
+    '''  
     def recordAttributes(self):
         #Should improve data recording format. This method is inefficient when i want to analyse all the data to look for trends. 
         #Record all attributes for this Analyzer object? 
@@ -263,12 +254,12 @@ class DataAnalyser():
 
 if __name__ == '__main__':
     
-    filename1 = 'BCI/EEG_Trials/eeg.save'
-    filename2 = 'BCI/experiments/1516283486.9ref_sig.save'
+    filename1 = './EEG_Pickle_Files/1517552237.66eeg.save'
+    
     event_list = [999,998,997,996]
     
-    analyzer = DataAnalyser(filename1,filename2,event_list)
-    analyzer.Analyse()
+    analyzer = DataAnalyser(filename1,event_list)
+    
         
         
         

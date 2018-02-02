@@ -26,7 +26,7 @@ class receiverSocket():
         self.eventList = []
         self.eventLabel = '0000'
         self.filename = './EEG_Pickle_Files/'
-        self.mode = '2'
+        
         
 
     def start(self):
@@ -66,8 +66,6 @@ class receiverSocket():
         
         start = time.time()
         while self.socketThreadRunning == True:
-            
-            #print(start)
             try:
                 #Data collection
                 self.clientCyKitSocket.setblocking(0)
@@ -78,13 +76,10 @@ class receiverSocket():
                         data = self.findChannel(self.channels,serverData)
                     except Exception, msg:
                         print("Error, findChannel() function: ", msg)
-                    #data = np.asarray(data)
-                   
-                    
+                
+
                     if data is not None:
-                        #print("Inside")
                         self.sampleReadings.append(data) #store reading in list
-                        
                         #For recording of events. 999 and 998 represent start and end of experiment respectively. The rest of the event labels can be customized.
                         if self.eventLabel == '999': 
                             print("Trial Start")
@@ -130,10 +125,9 @@ class receiverSocket():
         '''
         
         if(len(text)>10):
-            #print(text) #for debugging purposes
             try:
                 raw_data = (text.split("<split>")[2]).split(", ")
-                print("raw_data: {}".format(raw_data))
+                #print("raw_data: {}".format(raw_data))
             except Exception, msg:
                 print("Error splitting raw data:", msg)
                 return
@@ -148,7 +142,7 @@ class receiverSocket():
                     result = []
                     for channel in channels:
                         result.append(raw_data[channel])
-                    print('result: {}'.format(result))
+                    #print('result: {}'.format(result))
                     return result 
                 
     def preprocessData(self):
@@ -163,8 +157,8 @@ class receiverSocket():
         session_details - [date_time_recorded, subject_name, self.channels]
         master_list - numpy array
             shape - (num_channels + 1, num_samples)
-            [0] - sample counter
-            [1:-1] - specified channels
+            [0:-2] - specified channels
+            [-2] - sample counter
             [-1] - event list
         ref_list - list (from ExperimentInterface.py)
             [0] - frequencies of stimulus, eg [7.5,8.57,10,...]
@@ -184,7 +178,7 @@ class receiverSocket():
         
         #transpose matrix
         eeg_reading = (np.asarray(self.sampleReadings)).astype(float).T
-        mode = self.mode
+        
         file_time_log = time.time()
         file = self.filename + str(file_time_log)+'eeg'
         event_list = np.asarray(self.eventList)
@@ -193,19 +187,16 @@ class receiverSocket():
         #combine nparray containing eeg data and events into 1 matrix labeled master_list
         master_list = np.append(eeg_reading,event_list, axis=0)
         try:
-            if(mode=='1'):
-                np.savetxt(file+'.csv',master_list,delimiter=',')
-            elif(mode=='2'):
-                f = open(file+'.save', 'wb')
-                cPickle.dump(master_list,f,protocol=cPickle.HIGHEST_PROTOCOL)
-                f.close()
+            f = open(file+'.save', 'wb')
+            cPickle.dump((session_details,master_list),f,protocol=cPickle.HIGHEST_PROTOCOL)
+            f.close()
                 
 
         except Exception:
             print("Error, could not save as csv file. Saved as backup.save instead. Use cPickle to load file")
             #backup file saved using pickle
             f = open('backup.save', 'wb')
-            cPickle.dump(master_list,f,protocol=cPickle.HIGHEST_PROTOCOL)
+            cPickle.dump((session_details,master_list),f,protocol=cPickle.HIGHEST_PROTOCOL)
             f.close()
             
         return session_details, master_list
@@ -219,6 +210,9 @@ class receiverSocket():
             #index = randint(0,len(events)-1)
             eventCode = raw_input("Event code: \n")
             self.setStimCode(eventCode)
+            if(eventCode=='998'):
+                print("Exiting")
+                break
     
 
     #for interface to call, changes eventLabel to be inserted into eventList
@@ -233,6 +227,10 @@ class receiverSocket():
         
         
 if __name__ == '__main__':
-    client = receiverSocket('127.0.0.1', 15525, [0,8,9])
+    
+    ipAddress = raw_input('Enter IP Address')
+    portNumber = int(raw_input('Enter port number : \n'))
+         
+    client = receiverSocket(ipAddress, portNumber, [8,9,0])
     client.start()
     client.testInterface()
